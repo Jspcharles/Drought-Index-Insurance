@@ -29,7 +29,7 @@ def drought_effect(spi_gs):
     effect = np.where(spi_gs < 0,
                       config.YIELD_BETA_DRY * spi_gs,
                       config.YIELD_BETA_WET * spi_gs)
-    return np.clip(effect, -0.8, None)  # a crop never loses more than 80% here
+    return np.clip(effect, config.YIELD_EFFECT_FLOOR, None)
 
 
 def generate_yield(season, seed=config.SEED):

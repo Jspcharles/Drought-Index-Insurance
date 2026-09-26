@@ -1,0 +1,72 @@
+[
+ {
+  "id": "fig1",
+  "region": "Northvale",
+  "file": "assets/figures/fig1_rainfall_spi_Northvale.png",
+  "width": 1600,
+  "height": 876
+ },
+ {
+  "id": "fig1",
+  "region": "Eastbrook",
+  "file": "assets/figures/fig1_rainfall_spi_Eastbrook.png",
+  "width": 1600,
+  "height": 876
+ },
+ {
+  "id": "fig1",
+  "region": "Southmere",
+  "file": "assets/figures/fig1_rainfall_spi_Southmere.png",
+  "width": 1600,
+  "height": 876
+ },
+ {
+  "id": "fig1",
+  "region": "Westridge",
+  "file": "assets/figures/fig1_rainfall_spi_Westridge.png",
+  "width": 1600,
+  "height": 876
+ },
+ {
+  "id": "fig1",
+  "region": "Midland",
+  "file": "assets/figures/fig1_rainfall_spi_Midland.png",
+  "width": 1600,
+  "height": 876
+ },
+ {
+  "id": "fig2a",
+  "region": null,
+  "file": "assets/figures/fig2a_drought_events_timeline.png",
+  "width": 1600,
+  "height": 1427
+ },
+ {
+  "id": "fig2b",
+  "region": null,
+  "file": "assets/figures/fig2b_event_duration_severity.png",
+  "width": 1600,
+  "height": 1105
+ },
+ {
+  "id": "fig3",
+  "region": null,
+  "file": "assets/figures/fig3_spi_vs_yield.png",
+  "width": 1600,
+  "height": 418
+ },
+ {
+  "id": "fig4a",
+  "region": null,
+  "file": "assets/figures/fig4a_payout_vs_loss_scatter.png",
+  "width": 1600,
+  "height": 1226
+ },
+ {
+  "id": "fig4b",
+  "region": null,
+  "file": "assets/figures/fig4b_payout_loss_by_year.png",
+  "width": 1600,
+  "height": 1582
+ }
+]

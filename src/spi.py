@@ -141,13 +141,15 @@ def compute_spi_table(rain, scales, calibration=None):
     return pd.concat(pieces, ignore_index=True)
 
 
-def growing_season_table(spi_table, season_end_month, trigger_end_months):
+def growing_season_table(spi_table, season_end_month, trigger_end_months,
+                         season_months=6):
     """
     Summarise the monthly SPI into one row per region and year.
 
     Columns:
-      spi_gs        : SPI-6 ending in `season_end_month` (Oct -> May-Oct),
-                      the growing-season rainfall that drives yield.
+      spi_gs        : SPI-`season_months` ending in `season_end_month`
+                      (SPI-6 ending Oct -> May-Oct), the growing-season
+                      rainfall that drives yield.
       trigger_spi3  : the lowest SPI-3 among the windows ending in
                       `trigger_end_months`. This is the insurance index.
       trigger_month : which window gave that lowest value (useful for
@@ -157,8 +159,8 @@ def growing_season_table(spi_table, season_end_month, trigger_end_months):
                           month=spi_table["date"].dt.month)
 
     gs = (df[df["month"] == season_end_month]
-          .loc[:, ["region", "year", "spi_6"]]
-          .rename(columns={"spi_6": "spi_gs"}))
+          .loc[:, ["region", "year", f"spi_{season_months}"]]
+          .rename(columns={f"spi_{season_months}": "spi_gs"}))
 
     window = df[df["month"].isin(trigger_end_months)]
     worst = window.loc[window.groupby(["region", "year"])["spi_3"].idxmin(),

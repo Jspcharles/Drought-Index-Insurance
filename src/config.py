@@ -15,6 +15,7 @@ RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
 RESULTS_DIR = ROOT / "results"
 FIGURES_DIR = ROOT / "figures"
+SITE_DIR = ROOT / "site"          # the website; its data/ and assets/ ARE committed
 
 # ---------------------------------------------------------------------------
 # Reproducibility and study period
@@ -93,10 +94,12 @@ MIN_EVENT_DURATION = 1     # months; raise to 2-3 to ignore one-month blips
 # Growing season is May-October. The yield driver is SPI-6 ending in October,
 # i.e. the standardised rainfall total for May-Oct.
 GROWING_SEASON_END_MONTH = 10
+GROWING_SEASON_MONTHS = 6     # season length = SPI scale used (must be in SPI_SCALES)
 YIELD_TREND_PER_YEAR = 0.010  # +1.0% of base yield per year (technology)
 YIELD_BETA_DRY = 0.17         # yield change per unit of negative SPI
 YIELD_BETA_WET = 0.03         # yield change per unit of positive SPI (small)
 YIELD_NOISE_SD = 0.10        # non-rainfall shocks (pests, frost, heat, ...)
+YIELD_EFFECT_FLOOR = -0.8     # a crop never loses more than 80% to drought here
 
 # ---------------------------------------------------------------------------
 # Index insurance contract
@@ -120,3 +123,10 @@ SUM_INSURED_FRACTION = 0.5
 
 # A year counts as a "loss year" if yield is more than this far below trend.
 LOSS_THRESHOLD = 0.10
+
+# ---------------------------------------------------------------------------
+# Website export (site/)
+# ---------------------------------------------------------------------------
+# Figures are downscaled to this width (pixels) before being copied into
+# site/assets/figures, to keep the committed files small.
+SITE_FIGURE_WIDTH = 1600

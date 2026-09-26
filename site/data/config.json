@@ -1,0 +1,143 @@
+{
+ "SEED": 42,
+ "START_YEAR": 1991,
+ "END_YEAR": 2023,
+ "REGIONS": {
+  "Northvale": {
+   "annual_mm": 520,
+   "peak_month": 1,
+   "seasonality": 0.6,
+   "gamma_shape": 1.8,
+   "p_zero_max": 0.15,
+   "base_yield": 1.9
+  },
+  "Eastbrook": {
+   "annual_mm": 680,
+   "peak_month": 2,
+   "seasonality": 0.45,
+   "gamma_shape": 2.2,
+   "p_zero_max": 0.08,
+   "base_yield": 2.4
+  },
+  "Southmere": {
+   "annual_mm": 450,
+   "peak_month": 7,
+   "seasonality": 0.55,
+   "gamma_shape": 2.0,
+   "p_zero_max": 0.1,
+   "base_yield": 2.1
+  },
+  "Westridge": {
+   "annual_mm": 380,
+   "peak_month": 6,
+   "seasonality": 0.7,
+   "gamma_shape": 1.6,
+   "p_zero_max": 0.2,
+   "base_yield": 1.6
+  },
+  "Midland": {
+   "annual_mm": 600,
+   "peak_month": 8,
+   "seasonality": 0.35,
+   "gamma_shape": 2.5,
+   "p_zero_max": 0.05,
+   "base_yield": 2.8
+  }
+ },
+ "AR1_PHI": 0.5,
+ "AR1_SIGMA": 0.25,
+ "DRY_SPELLS": [
+  {
+   "start": "1994-03",
+   "end": "1995-08",
+   "factor": 0.55,
+   "regions": [
+    "Westridge",
+    "Southmere"
+   ]
+  },
+  {
+   "start": "2002-01",
+   "end": "2003-12",
+   "factor": 0.5,
+   "regions": [
+    "Northvale",
+    "Eastbrook",
+    "Midland"
+   ]
+  },
+  {
+   "start": "2006-01",
+   "end": "2009-12",
+   "factor": 0.6,
+   "regions": [
+    "Southmere",
+    "Westridge",
+    "Midland"
+   ]
+  },
+  {
+   "start": "2018-01",
+   "end": "2019-12",
+   "factor": 0.45,
+   "regions": [
+    "Northvale",
+    "Eastbrook"
+   ]
+  }
+ ],
+ "SPI_SCALES": [
+  3,
+  6,
+  12
+ ],
+ "SPI_CALIBRATION": [
+  1991,
+  2023
+ ],
+ "DROUGHT_THRESHOLD": -1.0,
+ "EVENT_SPI_SCALE": 3,
+ "MIN_EVENT_DURATION": 1,
+ "GROWING_SEASON_END_MONTH": 10,
+ "GROWING_SEASON_MONTHS": 6,
+ "YIELD_TREND_PER_YEAR": 0.01,
+ "YIELD_BETA_DRY": 0.17,
+ "YIELD_BETA_WET": 0.03,
+ "YIELD_NOISE_SD": 0.1,
+ "YIELD_EFFECT_FLOOR": -0.8,
+ "TRIGGER_WINDOW_END_MONTHS": [
+  7,
+  8,
+  9,
+  10
+ ],
+ "PAYOUT_TIERS": [
+  [
+   -2.0,
+   1.0
+  ],
+  [
+   -1.5,
+   0.5
+  ],
+  [
+   -1.0,
+   0.25
+  ]
+ ],
+ "SUM_INSURED_FRACTION": 0.5,
+ "LOSS_THRESHOLD": 0.1,
+ "derived": {
+  "n_years": 33,
+  "season_start_month": 5,
+  "candidate_windows": [
+   7,
+   8,
+   9,
+   10
+  ],
+  "spi_prob_min": 1e-06,
+  "spi_cap": 4.75,
+  "pooled_label": "All regions"
+ }
+}

@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drought-Index Insurance</title>
+  <meta name="description" content="A reproducible, synthetic-data walkthrough of drought-index insurance: SPI, run theory, a yield model, a tiered contract and its basis risk, with an interactive contract explorer.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232a78d6'/><path d='M16 6c-4 6-7 9.5-7 13a7 7 0 0 0 14 0c0-3.5-3-7-7-13z' fill='%23fff'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,650&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">A synthetic practice workflow</p>
+    <h1>Drought-index insurance, end to end</h1>
+    <p class="lede">Synthetic rainfall → SPI → drought events → wheat yield → a tiered index-insurance
+      contract → how well its payouts match real losses.</p>
+    <p class="synthetic" role="note"><strong>All data on this site are synthetic.</strong>
+      Rainfall and yields for <span data-bind="nRegions"></span> fictional regions are generated
+      from a fixed random seed (<span data-bind="seed"></span>). Nothing here describes a real place,
+      and every number is produced by the project's pipeline.</p>
+  </div>
+</header>
+
+<nav class="site-nav" aria-label="Sections">
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#data">Data</a></li>
+    <li><a href="#methods">Methods</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#explorer">Contract explorer</a></li>
+    <li><a href="#limitations">Limitations</a></li>
+  </ul>
+</nav>
+
+<div id="load-error" class="wrap load-error" hidden>
+  <p><strong>The data files could not be loaded.</strong> If you opened <code>index.html</code>
+    directly from disk, the browser blocks it from reading <code>data/*.json</code>. Serve the folder
+    instead: <code>python -m http.server -d site</code>, then open
+    <a href="http://localhost:8000">http://localhost:8000</a>.</p>
+</div>
+
+<main>
+
+<!-- ======================================================================= -->
+<section id="overview" class="wrap">
+  <h2><span class="num">1</span> Overview</h2>
+
+  <h3>The question</h3>
+  <p class="question">How well does a simple tiered contract, triggered by growing-season SPI-3,
+    compensate wheat farmers for drought-driven yield losses, and where does it fail?</p>
+
+  <h3>Why index insurance needs a drought index</h3>
+  <p>Conventional (indemnity) crop insurance pays for losses measured on each farm. That needs
+    loss assessment, which is slow and expensive, and it invites moral hazard and adverse selection.
+    <strong>Index insurance</strong> instead pays out when an independently measured index crosses a
+    trigger agreed in advance. Nobody visits the farm, payouts can be fast, and the insured cannot
+    influence the index.</p>
+  <p>The price is <strong>basis risk</strong>: the index is not the farmer's loss. A farmer can lose
+    a crop while the index stays above the trigger (a <em>missed loss</em>), or be paid in a year when
+    the crop was fine (a <em>false alarm</em>). Choosing and designing the index is therefore the
+    central research problem.</p>
+  <p>A standardised drought index such as the <strong>Standardized Precipitation Index (SPI)</strong>
+    is attractive because the same value means the same rarity everywhere: a given SPI is equally
+    unusual in a wet region and a dry one, and in any season. One set of trigger levels can then be
+    applied across regions with very different climates.</p>
+
+  <h3>Why synthetic data</h3>
+  <p>With synthetic data the truth is known. Dry spells are injected at known dates, and the link
+    between rainfall and yield is set by assumption, so each step can be checked against what it
+    should find. The price is realism: see <a href="#limitations">Limitations</a>.</p>
+
+  <h3>The workflow</h3>
+  <ol class="flow">
+    <li><a href="#data"><span>1</span>Synthetic monthly rainfall</a></li>
+    <li><a href="#m-spi"><span>2</span><span data-bind="spiScales"></span></a></li>
+    <li><a href="#m-events"><span>3</span>Drought events (run theory)</a></li>
+    <li><a href="#m-yield"><span>4</span>Synthetic wheat yield</a></li>
+    <li><a href="#m-contract"><span>5</span>Tiered index contract</a></li>
+    <li><a href="#results"><span>6</span>Basis-risk evaluation</a></li>
+  </ol>
+
+  <h3>Headline result</h3>
+  <div class="tiles">
+    <div class="tile"><div class="tile-label">Hit rate</div>
+      <div class="tile-value" data-bind="hitRate"></div>
+      <div class="tile-note">of <span data-bind="lossYears"></span> loss years were paid</div></div>
+    <div class="tile"><div class="tile-label">False alarm ratio</div>
+      <div class="tile-value" data-bind="far"></div>
+      <div class="tile-note">of <span data-bind="payouts"></span> payouts had no loss</div></div>
+    <div class="tile"><div class="tile-label">Missed losses</div>
+      <div class="tile-value" data-bind="misses"></div>
+      <div class="tile-note">loss years with no payout</div></div>
+    <div class="tile"><div class="tile-label">Basis risk (RMSE)</div>
+      <div class="tile-value"><span data-bind="rmse"></span> pp</div>
+      <div class="tile-note">typical payout–loss gap, % of expected yield</div></div>
+  </div>
+  <p>Pooled over <span data-bind="nRegions"></span> regions and
+    <span data-bind="nYears"></span> years (<span data-bind="nRegionYears"></span> region-years).
+    The contract works well in the deep, injected droughts but misses losses caused by anything other
+    than rainfall, and it pays in some years when one dry quarter did not hurt the crop.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="data" class="wrap">
+  <h2><span class="num">2</span> Data</h2>
+  <p>Monthly rainfall for <span data-bind="nMonths"></span> months
+    (<span data-bind="startYear"></span>–<span data-bind="endYear"></span>) in
+    <span data-bind="nRegions"></span> fictional regions: <span data-bind="regionList"></span>.
+    Every random draw comes from NumPy's generator seeded with <span data-bind="seed"></span>. Yields
+    use a separate stream (seed <span data-bind="seedYield"></span>), so changing the yield model does
+    not change the rainfall. Every setting lives in <code>src/config.py</code>.</p>
+
+  <h3>Regions</h3>
+  <div class="table-scroll">
+    <table id="regions-table" class="data-table">
+      <thead><tr>
+        <th scope="col">Region</th>
+        <th scope="col">Normal-year rain<br><small>mm/yr</small></th>
+        <th scope="col">Realised mean<br><small>mm/yr</small></th>
+        <th scope="col">Wettest month</th>
+        <th scope="col">Seasonality <span class="m">a</span></th>
+        <th scope="col">Gamma shape <span class="m">k</span><br><small>(CV)</small></th>
+        <th scope="col">Max chance of<br>a rainless month</th>
+        <th scope="col">Base yield<br><small>t/ha</small></th>
+        <th scope="col">Mean monthly rain<br><small>Jan–Dec</small></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="note">Winter-rainfall regions (wettest month mid-year, like southern Australia) and
+    summer-rainfall regions (wettest month early in the year, like northern Australia) are both
+    included. The realised mean (<span data-bind="realisedMin"></span>–<span data-bind="realisedMax"></span>
+    mm/yr) is lower than the normal-year value because of the injected dry spells and the rainless
+    months.</p>
+
+  <h3>What makes the rainfall realistic</h3>
+  <ul>
+    <li><strong>Seasonality:</strong> a cosine annual cycle, peaking in each region's wettest month.</li>
+    <li><strong>Month-to-month variability:</strong> rainfall is drawn from a gamma distribution; a
+      smaller shape <span class="m">k</span> means more erratic rain.</li>
+    <li><strong>Persistence:</strong> an AR(1) anomaly (lag-1 correlation
+      <span class="m">\phi</span> = <span data-bind="ar1Phi"></span>) makes a dry month likelier to be
+      followed by another, as happens with ENSO or soil-moisture feedback.</li>
+    <li><strong>Rainless months:</strong> in the dry half of the year a month can receive no rain at
+      all. This matters for SPI, which has to handle zeros explicitly.</li>
+  </ul>
+
+  <h3>Injected dry spells: the known truth</h3>
+  <p><span data-bind="nSpells"></span> multi-year dry spells (<span data-bind="spellYears"></span>)
+    cut rainfall by <span data-bind="spellCutMin"></span>–<span data-bind="spellCutMax"></span>, each
+    affecting <span data-bind="spellRegionsMin"></span>–<span data-bind="spellRegionsMax"></span>
+    regions. They are what SPI and run theory should recover.</p>
+  <div id="spell-timeline" class="timeline" aria-label="Timeline of injected dry spells by region"></div>
+
+  <h3>Wheat yield</h3>
+  <p>Annual yield for each region combines a technology trend (+<span data-bind="trendPct"></span> of
+    base yield per year), a drought effect driven by growing-season rainfall
+    (<span data-bind="season"></span>, measured by <span data-bind="gsIndex"></span> ending in
+    <span data-bind="seasonEnd"></span>), and random noise (SD <span data-bind="noiseSd"></span>) for
+    everything rainfall does not explain: frost, heat at flowering, pests. The equation is in
+    <a href="#m-yield">Methods</a>.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="methods" class="wrap">
+  <h2><span class="num">3</span> Methods</h2>
+
+  <h3 id="m-rain">3.1 Synthetic rainfall</h3>
+  <p>For region <span class="m">r</span>, month <span class="m">t</span> and calendar month
+    <span class="m">m</span>:</p>
+  <div class="eq">\mu_m = \frac{P}{12}\left[1 + a\cos\frac{2\pi(m - m_{\text{peak}})}{12}\right]</div>
+  <div class="eq">z_t = \phi\, z_{t-1} + \sqrt{1-\phi^2}\;\varepsilon_t,\qquad \varepsilon_t \sim N(0,1)</div>
+  <div class="eq">R_t \sim \text{Gamma}\!\left(k,\; \theta_t = \frac{\mu_m\, e^{\sigma z_t - \sigma^2/2}\, d_t}{k}\right),
+    \qquad R_t = 0 \text{ with probability } p_0(m)</div>
+  <p class="where"><span class="m">P</span>, <span class="m">a</span>, <span class="m">k</span> and
+    <span class="m">m_{\text{peak}}</span> are the per-region values in the table above;
+    <span class="m">\phi</span> = <span data-bind="ar1Phi"></span>,
+    <span class="m">\sigma</span> = <span data-bind="ar1Sigma"></span>. The multiplier
+    <span class="m">e^{\sigma z - \sigma^2/2}</span> has mean 1, so persistence changes the timing of
+    wet and dry periods without changing mean rainfall. <span class="m">d_t</span> is the dry-spell
+    factor (1 outside spells), and <span class="m">p_0(m)</span> is non-zero only in the dry half of
+    the year.</p>
+
+  <h3 id="m-spi">3.2 Standardized Precipitation Index</h3>
+  <p>Following McKee et al. (1993) and the WMO SPI User Guide (2012), computed for
+    <span data-bind="spiScales"></span>:</p>
+  <ol>
+    <li>Sum rainfall over the <span class="m">k</span> months ending at <span class="m">t</span>:
+      <span class="m">X_t = \sum_{i=0}^{k-1} R_{t-i}</span>.</li>
+    <li>For <strong>each calendar month separately</strong>, fit a two-parameter gamma distribution
+      <span class="m">G(x;\alpha,\beta)</span> (location fixed at 0, maximum likelihood) to the
+      <em>non-zero</em> totals in the calibration period (<span data-bind="calPeriod"></span>). Fitting
+      by calendar month removes seasonality: a January total is only compared with other January
+      totals.</li>
+    <li>Convert each total to a cumulative probability with a mixed distribution that allows for
+      zeros, then map it onto the standard normal:</li>
+  </ol>
+  <div class="eq">H(x) = q + (1-q)\,G(x;\alpha,\beta), \qquad q = \frac{m}{n+1}</div>
+  <div class="eq">\text{SPI}_t = \Phi^{-1}\!\big(H(X_t)\big)</div>
+  <p class="where"><span class="m">m</span> of the <span class="m">n</span> totals are zero.
+    <strong>Zero rainfall:</strong> the gamma distribution is undefined at zero, so zero totals are
+    given the centre of the zero-probability mass, <span class="m">H(0) = (m+1)/\big(2(n+1)\big)</span>,
+    as Stagge et al. (2015) recommend. Using <span class="m">q</span> itself would give rainless months
+    a <em>positive</em> SPI wherever rainless months are common, which makes no physical sense.
+    Probabilities are clipped to <span class="m">[p, 1-p]</span> with <span class="m">p</span> =
+    <span data-bind="pMin"></span>, which caps SPI at ±<span data-bind="spiCap"></span>. The first
+    <span class="m">k-1</span> months have no SPI.</p>
+
+  <h3 id="m-events">3.3 Drought events: run theory</h3>
+  <p>An event (Yevjevich, 1967) is an unbroken run of months with <span data-bind="eventScale"></span>
+    &lt; <span data-bind="droughtThr"></span> (shortest run counted, in months:
+    <span data-bind="minEventDur"></span>). For each run of <span class="m">D</span> months:</p>
+  <div class="eq">S = \sum_{t \in \text{run}} \left(-\text{SPI}_t\right), \qquad I = \frac{S}{D},
+    \qquad \text{peak} = \min_{t \in \text{run}} \text{SPI}_t</div>
+  <p class="where">Duration <span class="m">D</span>, severity <span class="m">S</span> (McKee's
+    “drought magnitude”) and intensity <span class="m">I</span>.</p>
+
+  <h3 id="m-yield">3.4 Yield model</h3>
+  <div class="eq">Y_{r,y} = Y_{0,r}\,\big(1 + g\,(y - y_0)\big)\,\big(1 + f(s_{r,y})\big)\,(1 + \varepsilon_{r,y}),
+    \qquad \varepsilon \sim N(0, \sigma_Y^2)</div>
+  <div class="eq">f(s) = \max\!\big(f_{\min},\ \beta_{\text{dry}}\, s\big) \ \text{ if } s &lt; 0, \qquad
+    f(s) = \beta_{\text{wet}}\, s \ \text{ if } s \ge 0</div>
+  <p class="where"><span class="m">s</span> is growing-season SPI (<span data-bind="gsIndex"></span>
+    ending in <span data-bind="seasonEnd"></span>, i.e. <span data-bind="season"></span> rainfall);
+    <span class="m">g</span> = <span data-bind="trendPct"></span> per year;
+    <span class="m">\beta_{\text{dry}}</span> = <span data-bind="betaDry"></span> and
+    <span class="m">\beta_{\text{wet}}</span> = <span data-bind="betaWet"></span>, so a dry season hurts
+    <span data-bind="betaRatio"></span>× more than an equally wet one helps;
+    <span class="m">f_{\min}</span> = <span data-bind="floor"></span> (no more than
+    <span data-bind="floorPct"></span> lost to drought); <span class="m">\sigma_Y</span> =
+    <span data-bind="noiseSd"></span>.</p>
+
+  <h3 id="m-contract">3.5 Insurance contract and evaluation</h3>
+  <p><strong>Index:</strong> the lowest SPI-3 over the <span data-bind="nWindows"></span> windows
+    ending in <span data-bind="windowEnds"></span> (<span data-bind="windows"></span>), all inside the
+    growing season. Taking the minimum means one dry quarter at any stage of the season can trigger a
+    payout.</p>
+  <div class="eq">I_{r,y} = \min_{w \in W}\ \text{SPI-3}_{r,w,y}</div>
+  <p><strong>Payout:</strong> tiered, as a share of the sum insured (SI). The sum insured is
+    <span data-bind="sumInsuredPct"></span> of expected yield, so payouts and losses are both expressed
+    as a percentage of expected yield and can be compared directly.</p>
+  <div class="table-scroll narrow">
+    <table id="tier-table" class="data-table">
+      <thead><tr><th scope="col">Tier</th><th scope="col">Index</th>
+        <th scope="col">Payout<br><small>% of SI</small></th>
+        <th scope="col">Payout<br><small>% of expected yield</small></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p><strong>Loss:</strong> as an analyst would, without knowing the true synthetic trend, fit a linear
+    trend <span class="m">\hat T</span> to each region's yield and measure the shortfall below it. A
+    <em>loss year</em> has <span class="m">L &gt;</span> <span data-bind="lossThrPct"></span>.</p>
+  <div class="eq">L_{r,y} = \max\!\left(0,\ \frac{\hat T_{r,y} - Y_{r,y}}{\hat T_{r,y}}\right)</div>
+  <p><strong>Evaluation</strong>, from the 2×2 table of “paid?” against “loss year?”:</p>
+  <div class="eq">\text{hit rate} = \frac{\text{hits}}{\text{hits} + \text{misses}}, \qquad
+    \text{false alarm ratio} = \frac{\text{false alarms}}{\text{hits} + \text{false alarms}}</div>
+  <div class="eq">\text{basis risk} = \sqrt{\tfrac{1}{N}\textstyle\sum \big(\text{payout} - L\big)^2}
+    \quad\text{and}\quad \text{corr}(\text{payout}, L)</div>
+  <p class="where">Hit rate and false alarm ratio only ask <em>whether</em> the contract paid. The RMSE
+    and correlation also ask whether it paid the <em>right amount</em>.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="results" class="wrap">
+  <h2><span class="num">4</span> Results</h2>
+
+  <h3>4.1 Rainfall, SPI and drought events</h3>
+  <p>Pick a region. Grey bands are the injected dry spells; light red bands are the drought events
+    found by run theory. Hover to read values; drag to zoom, double-click to reset. Click SPI-6 in the
+    legend to add it.</p>
+  <div class="control-row">
+    <label for="spi-region">Region</label>
+    <select id="spi-region"></select>
+  </div>
+  <div id="spi-chart" class="chart chart-tall" role="img" aria-label="Interactive rainfall and SPI time series"></div>
+  <details class="events">
+    <summary id="events-count">Drought events</summary>
+    <div class="table-scroll">
+      <table id="events-table" class="data-table compact">
+        <thead><tr><th scope="col">Start</th><th scope="col">End</th><th scope="col">Months</th>
+          <th scope="col">Severity</th><th scope="col">Intensity</th><th scope="col">Peak SPI</th>
+          <th scope="col">In injected spell</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </details>
+  <p>Run theory finds <span data-bind="nEvents"></span> events across all regions.
+    <span data-bind="spellPairsDetected"></span> of the <span data-bind="spellPairs"></span>
+    region–spell combinations contain at least one detected event, and the
+    <span data-bind="topInSpell"></span> most severe events all lie inside injected spells. The other
+    events are real but short dry anomalies: <span data-bind="oneMonthEvents"></span> events
+    (<span data-bind="oneMonthPct"></span>) last a single month.</p>
+
+  <h3>4.2 Growing-season SPI and yield</h3>
+  <p>Each point is one region-year, coloured by what the contract did. The dotted line is the response
+    the synthetic yields were generated with; the solid line is what a regression on the data
+    recovers.</p>
+  <div class="control-row">
+    <label for="yield-region">Region</label>
+    <select id="yield-region"></select>
+  </div>
+  <div id="yield-chart" class="chart" role="img" aria-label="Interactive scatter of growing-season SPI against yield anomaly"></div>
+  <p>Correlations between growing-season SPI and the yield anomaly range from
+    <span data-bind="rMin"></span> to <span data-bind="rMax"></span> across regions: rainfall explains a
+    good part of yield variability, but not all of it. That residual, together with the difference
+    between the index (worst SPI-3 window) and the yield driver (<span data-bind="gsIndex"></span>),
+    is the source of basis risk.</p>
+
+  <h3>4.3 Contract performance</h3>
+  <div class="table-scroll">
+    <table id="metrics-table" class="data-table">
+      <thead><tr>
+        <th scope="col">Region</th><th scope="col">Years</th><th scope="col">Loss years</th>
+        <th scope="col">Payouts</th><th scope="col">Hits</th><th scope="col">Misses</th>
+        <th scope="col">False alarms</th><th scope="col">Hit rate</th>
+        <th scope="col">False alarm ratio</th><th scope="col">RMSE<br><small>pp</small></th>
+        <th scope="col">Mean |gap|<br><small>pp</small></th><th scope="col">Corr.</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <ul class="findings">
+    <li><strong>Hits.</strong> Pooled, the contract paid in <span data-bind="hits"></span> of
+      <span data-bind="lossYears"></span> loss years (hit rate <span data-bind="hitRate"></span>, 95%
+      Wilson interval <span data-bind="hitRateLo"></span>–<span data-bind="hitRateHi"></span>). During
+      injected dry spells it paid in <span data-bind="spellLossPaid"></span> of
+      <span data-bind="spellLossYears"></span> loss years; at other times, in
+      <span data-bind="otherLossPaid"></span> of <span data-bind="otherLossYears"></span>.</li>
+    <li><strong>Misses.</strong> In the <span data-bind="misses"></span> missed loss years the index
+      averaged <span data-bind="missMeanIndex"></span>, above the trigger of
+      <span data-bind="triggerThr"></span>. <span data-bind="missesWetSeason"></span> of the
+      <span data-bind="lossYearsWetSeason"></span> loss years with an above-median growing season were
+      missed: these losses are the non-rainfall noise in the yield model, and no rainfall index can
+      see them.</li>
+    <li><strong>False alarms.</strong> <span data-bind="falseAlarms"></span> of
+      <span data-bind="payouts"></span> payouts (<span data-bind="far"></span>) went to years without
+      a loss. In those years the growing-season SPI averaged <span data-bind="faMeanGs"></span>, compared
+      with <span data-bind="hitMeanGs"></span> in hit years, and the average loss was
+      <span data-bind="faMeanLoss"></span>%: one dry quarter triggered the contract, but the season as
+      a whole was not dry enough to cause a loss.</li>
+    <li><strong>Regions.</strong> Hit rates range from <span data-bind="worstHitRate"></span>
+      (<span data-bind="worstRegion"></span>) to <span data-bind="bestHitRate"></span>
+      (<span data-bind="bestRegion"></span>). Each region has only a handful of loss years, so regional
+      differences should not be over-read.</li>
+  </ul>
+
+  <h3>4.4 Figures from the pipeline</h3>
+  <p>The static figures produced by <code>run_pipeline.py</code>. Click a figure to open it at full
+    size.</p>
+  <div id="figure-gallery" class="gallery"></div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="explorer" class="wrap wide">
+  <h2><span class="num">5</span> Contract explorer</h2>
+  <p>Redesign the contract and watch the trade-offs. Every change reruns the contract and its
+    evaluation in your browser on the same <span data-bind="nRegionYears"></span> region-years. Moving
+    the trigger lower cuts false alarms but misses more losses. Adding windows makes the index more
+    sensitive, because the minimum over more windows is lower. A bigger sum insured pays more in hits
+    and false alarms alike.</p>
+  <p id="parity" class="badge">Checking the browser calculation against the pipeline…</p>
+
+  <div class="explorer">
+    <form class="controls" onsubmit="return false">
+      <h3>Payout tiers</h3>
+      <p class="hint">Thresholds stay in order and payouts stay graded: moving one slider nudges its
+        neighbours.</p>
+      <div id="tier-controls"></div>
+      <h3>Index windows (SPI-3)</h3>
+      <div id="window-controls" class="checks"></div>
+      <h3>Scale and loss definition</h3>
+      <div id="other-controls"></div>
+      <button type="button" id="explorer-reset" class="button">Reset to pipeline contract</button>
+    </form>
+
+    <div class="outputs">
+      <div class="control-row">
+        <label for="explorer-region">Show</label>
+        <select id="explorer-region"></select>
+      </div>
+      <p id="explorer-summary" class="summary"></p>
+      <div id="explorer-tiles" class="tiles small"></div>
+      <h3>Payouts against losses</h3>
+      <div id="explorer-scatter" class="chart" role="img" aria-label="Payouts against losses for the current contract"></div>
+      <h3>Year by year</h3>
+      <div id="explorer-years" class="chart chart-short" role="img" aria-label="Losses and payouts by year for the current contract"></div>
+      <div class="table-scroll">
+        <table id="explorer-table" class="data-table compact">
+          <thead><tr><th scope="col">Region</th><th scope="col">Loss years</th>
+            <th scope="col">Payouts</th><th scope="col">Hits</th><th scope="col">Misses</th>
+            <th scope="col">False alarms</th><th scope="col">Hit rate</th><th scope="col">FAR</th>
+            <th scope="col">RMSE<br><small>pp</small></th><th scope="col">Corr.</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <p class="note">The fitted yield trend does not depend on the contract, so each region-year's loss
+    is taken from the pipeline and only the index, payouts and metrics are recomputed. Losses and
+    payouts are both in % of expected yield; “pp” means percentage points.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="limitations" class="wrap">
+  <h2><span class="num">6</span> Limitations</h2>
+  <p>This is a practice workflow. Compared with real weather-index insurance research, it leaves out
+    a lot:</p>
+  <ul class="limits">
+    <li><strong>Synthetic data.</strong> The strength of the rainfall–yield link
+      (<span class="m">\beta_{\text{dry}}</span> = <span data-bind="betaDry"></span>) and the size of
+      the non-rainfall noise are set by assumption, not estimated. The results show how the method
+      behaves, not how well SPI insurance would work anywhere real.</li>
+    <li><strong>Everything is in-sample.</strong> SPI is fitted on the same
+      <span data-bind="nYears"></span> years it is evaluated on, and the contract is judged on the data
+      it was designed with. Real studies calibrate on one period and test on another, or cross-validate.
+      With <span data-bind="lossYears"></span> pooled loss years the hit rate is itself uncertain (95%
+      interval <span data-bind="hitRateLo"></span>–<span data-bind="hitRateHi"></span>).</li>
+    <li><strong>No spatial basis risk.</strong> Each region has one rainfall series that applies
+      equally to every farm. In reality the index comes from a station or grid cell some distance
+      away, and farm-level losses differ from regional averages.</li>
+    <li><strong>No spatial correlation.</strong> Regions are generated independently. Real droughts
+      are spatially correlated, and that correlation dominates an insurer's portfolio risk and
+      reinsurance cost.</li>
+    <li><strong>Rainfall only.</strong> No temperature, evapotranspiration (e.g. SPEI), soil moisture,
+      remote sensing or crop-growth model. The index windows are fixed calendar months rather than
+      crop stages.</li>
+    <li><strong>Stationary climate.</strong> One gamma distribution per calendar month for the whole
+      record assumes no climate trend; a drying climate would shift both the SPI baseline and the
+      payout frequency.</li>
+    <li><strong>Simple detrending and loss definition.</strong> A linear trend fitted to
+      <span data-bind="nYears"></span> points is itself uncertain, especially with a dry spell near the
+      end of the record, and a fixed <span data-bind="lossThrPct"></span> threshold is only one
+      possible definition of a loss.</li>
+    <li><strong>No pricing or welfare.</strong> Payout tiers are illustrative, not priced. There is no
+      premium, loading, or demand analysis, and no measure of farmer welfare such as certainty-equivalent
+      income or expected utility, which is how the value of reducing basis risk is usually judged.</li>
+    <li><strong>No data problems.</strong> Real station records have gaps, errors and changes of
+      instrument; these series are complete and perfect by construction.</li>
+  </ul>
+
+  <h3>References</h3>
+  <ul class="refs">
+    <li>McKee, T.B., Doesken, N.J., Kleist, J. (1993). The relationship of drought frequency and
+      duration to time scales. <em>8th Conference on Applied Climatology</em>, American Meteorological
+      Society.</li>
+    <li>Stagge, J.H., Tallaksen, L.M., Gudmundsson, L., Van Loon, A.F., Stahl, K. (2015). Candidate
+      distributions for climatological drought indices (SPI and SPEI). <em>International Journal of
+      Climatology</em> 35, 4027–4040.</li>
+    <li>WMO (2012). <em>Standardized Precipitation Index User Guide</em>. WMO-No. 1090.</li>
+    <li>Yevjevich, V. (1967). An objective approach to definitions and investigations of continental
+      hydrologic droughts. <em>Hydrology Paper 23</em>, Colorado State University.</li>
+  </ul>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Every number and figure on this page is generated by <code>python run_pipeline.py</code>
+      (seed <span data-bind="seed"></span>) and exported to <code>site/data/</code>. Source code,
+      methods note and tests:
+      <a href="https://github.com/Jspcharles/Drought-Index-Insurance">github.com/Jspcharles/Drought-Index-Insurance</a>.</p>
+  </div>
+</footer>
+
+</body>
+</html>
