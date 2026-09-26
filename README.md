@@ -1,6 +1,6 @@
 # Drought-index insurance: a synthetic practice workflow
 
-**Website:** [https://YOUR-USERNAME.github.io/YOUR-REPO/](https://YOUR-USERNAME.github.io/YOUR-REPO/) *(placeholder until GitHub Pages is enabled)*
+**Website:** [https://jspcharles.github.io/Drought-Index-Insurance/](https://jspcharles.github.io/Drought-Index-Insurance/) *(placeholder until GitHub Pages is enabled)*
 
 A small, reproducible project that runs a full drought-index insurance analysis on **synthetic** data:
 
