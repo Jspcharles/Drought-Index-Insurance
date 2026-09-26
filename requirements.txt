@@ -1,0 +1,13 @@
+# Core scientific stack
+numpy>=2.0
+pandas>=2.2
+scipy>=1.13
+
+# Figures
+matplotlib>=3.9
+
+# Testing
+pytest>=8.0
+
+# Notebook (includes jupyterlab, ipykernel and nbconvert)
+jupyter
