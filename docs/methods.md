@@ -42,7 +42,8 @@ Run theory (Yevjevich, 1967). An event is an unbroken run of months with SPI-3 <
 Y = Y₀ (1 + g·t) · (1 + f(SPI_gs)) · (1 + ε), where ε ~ N(0, σ²)
 
 - SPI_gs = SPI-6 ending in October (the May–October growing season)
-- f(s) = β_dry · s for s < 0 and β_wet · s for s ≥ 0, with β_dry ≫ β_wet (dry seasons hurt more than wet seasons help); f is floored at −0.8
+- f(s) = β_dry · s for s < 0 and β_wet · s for s ≥ 0, with β_dry ≫ β_wet (dry seasons hurt more than wet seasons help); f is floored at −0.8 (`YIELD_EFFECT_FLOOR`)
+- The growing-season length (`GROWING_SEASON_MONTHS`, 6) sets which SPI scale drives yield
 
 ## 5. Insurance contract (`src/insurance.py`)
 
@@ -56,6 +57,15 @@ Y = Y₀ (1 + g·t) · (1 + f(SPI_gs)) · (1 + ε), where ε ~ N(0, σ²)
 - Hit rate = hits / (hits + misses)
 - False alarm ratio = false alarms / (hits + false alarms)
 - Basis risk: RMSE and mean |payout − loss|, and corr(payout, loss)
+
+## 6. Website export (`src/export_site.py`)
+
+Step 7 of the pipeline exports the results for the website in `site/`. It does not change any analysis:
+
+- `site/data/*.json` holds the settings, monthly rainfall and SPI, one row per region-year (including the SPI-3 of every window inside the growing season), drought events and contract metrics
+- `site/assets/figures/` holds the figures, downscaled to 1600 px wide and reduced to a 256-colour palette
+
+The website's contract explorer recomputes the index, payouts and metrics in the browser from these files. `site/js/contract.js` repeats the logic of `src/insurance.py`. On load, the explorer runs the pipeline's own contract and checks that it reproduces `contract_metrics.csv`. Loss years are taken from the pipeline rather than recomputed, because the fitted trend does not depend on the contract.
 
 ## Limitations
 
