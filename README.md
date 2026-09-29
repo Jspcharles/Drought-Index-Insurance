@@ -1,4 +1,4 @@
-# Drought-index insurance: a synthetic practice workflow
+# Drought-index insurance: a synthetic approach
 
 **Website:** [https://jspcharles.github.io/Drought-Index-Insurance/](https://jspcharles.github.io/Drought-Index-Insurance/)
 
